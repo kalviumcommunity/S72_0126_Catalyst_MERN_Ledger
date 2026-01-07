@@ -1,173 +1,122 @@
----
+# Ledger 📒
 
-# Advanced Data Fetching: Static, Dynamic, and Hybrid Rendering (Next.js App Router)
+### Transparent Contribution Pipelines for NGOs & Open Source
 
-## Overview
-
-This project demonstrates how **static**, **dynamic**, and **hybrid** rendering work in the **Next.js App Router**, and how choosing the right rendering strategy affects **performance**, **scalability**, and **data freshness**.
-
-The goal of this assignment is to understand **when and why** to use each rendering mode instead of using one approach everywhere.
+> **Problem:** NGOs and open-source contributors often duplicate work due to poor visibility of ongoing efforts.
+> **Solution:** **Ledger** is a collaborative platform designed to make contribution pipelines transparent, reusable, and efficient. It acts as a central registry to track, visualize, and share development efforts across organizations.
 
 ---
 
-## Rendering Strategies and Trade-offs
+## 🧐 About the Project
 
-In Next.js, rendering decisions involve balancing three factors:
+**Ledger** solves the "reinventing the wheel" problem in the social impact sector. Instead of just listing issues, Ledger tracks the lifecycle of software modules.
 
-* **Performance (Speed)** – How fast pages load
-* **Scalability** – How well the app handles many users
-* **Data Freshness** – How up-to-date the content is
+If an NGO needs an "Inventory System," Ledger allows them to search if a "Stock Database" module already exists or is currently being built by another organization. This promotes collaboration over duplication.
 
-> You can usually optimize for **two** of these, but not all three at the same time.
+## 🚀 Key Features
 
----
-
-## 1. Static Rendering (SSG)
-
-### What it is
-
-Pages are generated at **build time** and served from a CDN.
-
-### Why I used it
-
-I used static rendering for pages that:
-
-* Are the same for all users
-* Do not change frequently
-
-### Example from our app
-
-* Homepage / landing page
-* Product or information pages
-
-### Benefits
-
-* Very fast page load
-* Highly scalable
-* No server cost per request
-
-### Trade-off
-
-* Content can become outdated until the next build or revalidation
+* **Pipeline Visualization:** Kanban-style tracking of project lifecycles.
+* **Duplication Alerts:** automated warnings if a similar project is already in development.
+* **Module Registry:** A library of reusable code blocks (e.g., Auth, Payments).
+* **Environment-Aware Deployment:** Secure, distinct builds for Staging and Production.
 
 ---
 
-## 2. Dynamic Rendering (SSR)
+## 🛠 Tech Stack
 
-### What it is
+* **Frontend:** React.js (Vite/Next.js)
+* **Backend:** Node.js / Express
+* **Database:** MongoDB
+* **CI/CD:** GitHub Actions
+* **Hosting:** AWS / Vercel
 
-Pages are rendered **on every request**.
+---
 
-```ts
-export const dynamic = 'force-dynamic';
+## ⚙️ Getting Started
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/kalviumcommunity/S72_0126_Catalyst_MERN_Ledger.git
+cd S72_0126_Catalyst_MERN_Ledger
+
 ```
 
-### Why we used it
 
-I used dynamic rendering for pages that:
+2. **Install dependencies**
+```bash
+npm install
 
-* Show user-specific or personalized data
-* Require real-time accuracy
-
-### Example from our app
-
-* User dashboard
-
-### Benefits
-
-* Always shows fresh data
-* Works well for authenticated content
-
-### Trade-off
-
-* Slower than static pages
-* Higher server cost at scale
-
----
-
-## 3. Hybrid Rendering (ISR)
-
-### What it is
-
-A mix of static rendering with **periodic revalidation**.
-
-```ts
-export const revalidate = 60;
 ```
 
-or
 
-```ts
-fetch(url, { next: { revalidate: 60 } });
+3. **Run Locally**
+```bash
+npm run dev
+
 ```
 
-### Why we used it
 
-I used hybrid rendering for pages that:
-
-* Update often
-* Do not need real-time accuracy
-
-### Example from our app
-
-* News feed / trending section
-
-### Benefits
-
-* Fast like static pages
-* Automatically updates in the background
-* Better balance between speed and freshness
 
 ---
 
-## Case Study: “The News Portal That Felt Outdated”
+## 🔐 DevOps: Environment & Secrets (Concept-2 Implementation)
 
-### Problem
+This project implements **Multi-Environment Architectures** to ensure safe and reliable deployments. We have separated configurations for **Development**, **Staging**, and **Production**.
 
-* Static homepage loaded fast but showed outdated breaking news
-* Switching everything to dynamic rendering fixed freshness but caused:
+### 1. Multi-Environment Configuration
 
-  * Slower page loads
-  * Higher server costs
+We use distinct `.env` files to manage variables. This prevents "it works on my machine" errors and ensures test data never mixes with production data.
 
-### Solution
+* **Files Created:**
+* `.env.development` (Localhost)
+* `.env.staging` (Cloud testing environment)
+* `.env.production` (Live environment)
 
-A **hybrid approach**:
 
-| Page Section  | Rendering Strategy | Reason                 |
-| ------------- | ------------------ | ---------------------- |
-| Layout & UI   | Static             | Rarely changes         |
-| Breaking News | Hybrid (ISR)       | Needs frequent updates |
-| User Info     | Dynamic            | Personalized data      |
+* **Example Configuration (`.env.example`):**
+*Note: Real secrets are strictly git-ignored.*
+```properties
+# .env.example
+VITE_API_URL=http://localhost:5000/api
+DATABASE_URL=mongodb+srv://user:pass@cluster.mongodb.net/dev_db
+JWT_SECRET=dev_secret_placeholder
 
-This approach keeps the site fast, scalable, and reasonably fresh.
+```
+
+
+
+### 2. Secure Secret Management
+
+We ensure no sensitive data is hardcoded or committed to GitHub:
+
+* **GitHub Secrets:** All API keys, Database URIs, and Tokens are stored in the repository settings under `Settings > Secrets and variables > Actions`.
+* **Injection:** During the CI/CD pipeline, these secrets are injected dynamically into the build process.
+
+### 3. Build Verification
+
+We have configured our `package.json` to support environment-specific builds using `env-cmd` (or similar tools):
+
+```json
+"scripts": {
+  "start": "node server.js",
+  "dev": "nodemon server.js",
+  "build:staging": "env-cmd -f .env.staging react-scripts build",
+  "build:production": "env-cmd -f .env.production react-scripts build"
+}
+
+```
+
+### 4. Reflection on Reliability
+
+> **Why this matters:**
+> By isolating environments, we can deploy to **Staging** and break things safely without affecting real users. Managing secrets via **GitHub Secrets** rather than hardcoding them ensures that even if our code is public (Open Source), our database and administrative access remain secure. This mimics a professional DevOps workflow.
 
 ---
 
-## How we Decided Which Rendering Strategy to Use
+## 🤝 Contributing
 
-I follow these rules:
-
-1. **Is the data user-specific?**
-   → Use **Dynamic Rendering**
-
-2. **Does the data change frequently but not instantly?**
-   → Use **Hybrid Rendering**
-
-3. **Is the data mostly static?**
-   → Use **Static Rendering**
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 ---
 
-## Conclusion
-
-A well-designed Next.js application should **not rely on a single rendering strategy**.
-By combining static, dynamic, and hybrid rendering, we can build applications that are:
-
-* Fast for users
-* Scalable for traffic
-* Fresh where it matters
-
-Choosing the right rendering strategy for each page is key to building efficient and real-world Next.js applications.
-
-
+*Project maintained by the Ledger Team*
