@@ -35,7 +35,7 @@ I used static rendering for pages that:
 * Are the same for all users
 * Do not change frequently
 
-### Example from my app
+### Example from our app
 
 * Homepage / landing page
 * Product or information pages
@@ -62,14 +62,14 @@ Pages are rendered **on every request**.
 export const dynamic = 'force-dynamic';
 ```
 
-### Why I used it
+### Why we used it
 
 I used dynamic rendering for pages that:
 
 * Show user-specific or personalized data
 * Require real-time accuracy
 
-### Example from my app
+### Example from our app
 
 * User dashboard
 
@@ -101,14 +101,14 @@ or
 fetch(url, { next: { revalidate: 60 } });
 ```
 
-### Why I used it
+### Why we used it
 
 I used hybrid rendering for pages that:
 
 * Update often
 * Do not need real-time accuracy
 
-### Example from my app
+### Example from our app
 
 * News feed / trending section
 
@@ -144,7 +144,7 @@ This approach keeps the site fast, scalable, and reasonably fresh.
 
 ---
 
-## How I Decide Which Rendering Strategy to Use
+## How we Decided Which Rendering Strategy to Use
 
 I follow these rules:
 
@@ -170,13 +170,4 @@ By combining static, dynamic, and hybrid rendering, we can build applications th
 
 Choosing the right rendering strategy for each page is key to building efficient and real-world Next.js applications.
 
----
 
-If you want, I can:
-
-* Make this **even simpler**
-* Match it to **your exact app pages**
-* Shorten it if there’s a word limit
-* Help with the **video script**
-
-Just tell me 👍
