@@ -1,4 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ledger - Collaborative NGO Platform
+
+This is a [Next.js](https://nextjs.org) project for the **Ledger** platform - a collaborative system designed to make NGO contribution pipelines transparent, reusable, and efficient.
+
+## 🔐 Authentication
+
+This app includes secure user authentication using **bcrypt** for password hashing and **JWT** for token-based sessions.
+
+📖 **See [AUTHENTICATION.md](./AUTHENTICATION.md) for complete authentication documentation.**
+
+### Quick Start - Authentication
+
+1. **Set up environment variables:**
+   ```bash
+   # Create .env.local file
+   echo 'JWT_SECRET=your-super-secret-key-change-in-production' > .env.local
+   echo 'DATABASE_URL="file:../../dev.db"' >> .env.local
+   ```
+
+2. **Generate Prisma Client:**
+   ```bash
+   # From project root
+   cd ../..
+   npx prisma generate
+   ```
+
+3. **Run database migration (if not done):**
+   ```bash
+   npx prisma migrate dev --name add_password_field
+   ```
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Test authentication endpoints:**
+   - Signup: `POST http://localhost:3000/api/auth/signup`
+   - Login: `POST http://localhost:3000/api/auth/login`
+   - Protected Route: `GET http://localhost:3000/api/users` (requires Bearer token)
 
 ## Getting Started
 
@@ -18,7 +57,14 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## API Routes
+
+### Authentication Routes
+- `POST /api/auth/signup` - Create a new user account
+- `POST /api/auth/login` - Login and receive JWT token
+- `GET /api/users` - Get user data (protected, requires Bearer token)
+
+See [AUTHENTICATION.md](./AUTHENTICATION.md) for detailed API documentation and examples.
 
 ## Learn More
 
