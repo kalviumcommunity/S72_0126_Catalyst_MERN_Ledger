@@ -1,37 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { extractTokenFromHeader, verifyToken } from '@/lib/jwt';
 
 /**
- * Protected route that requires valid JWT token
- * Returns user data only if token is valid
+ * Protected route - Requires valid JWT token (enforced by middleware)
+ * Accessible to all authenticated users regardless of role
+ * Returns the current user's data based on their token
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check Authorization header for JWT token
-    const authHeader = request.headers.get('Authorization');
-    const token = extractTokenFromHeader(authHeader);
+    // User info is validated by middleware and passed via headers
+    const userId = request.headers.get('x-user-id');
+    const userEmail = request.headers.get('x-user-email');
+    const userRole = request.headers.get('x-user-role');
 
-    if (!token) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Authorization token required. Please provide Bearer token in Authorization header.' },
-        { status: 401 }
-      );
-    }
-
-    // Verify token
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return NextResponse.json(
-        { error: 'Invalid or expired token' },
+        { error: 'User information not found in request' },
         { status: 401 }
       );
     }
 
     // Fetch user data from database
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: parseInt(userId) },
       select: {
         id: true,
         email: true,
@@ -40,6 +31,12 @@ export async function GET(request: NextRequest) {
         role: true,
         createdAt: true,
         updatedAt: true,
+        _count: {
+          select: {
+            projects: true,
+            tasks: true,
+          },
+        },
       },
     });
 
@@ -53,17 +50,19 @@ export async function GET(request: NextRequest) {
     // Return protected user data
     return NextResponse.json(
       {
-        message: 'Protected data accessed successfully',
+        success: true,
+        message: 'User data accessed successfully',
         user,
-        tokenInfo: {
-          userId: decoded.userId,
-          email: decoded.email,
+        sessionInfo: {
+          userId: parseInt(userId),
+          email: userEmail,
+          role: userRole,
         },
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error('Protected route error:', error);
+    console.error('Users route error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
