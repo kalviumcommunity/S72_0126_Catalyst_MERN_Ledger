@@ -38,10 +38,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate JWT token with user ID and email
+    // Generate JWT token with user ID, email, and role
     const token = generateToken({
       userId: user.id,
       email: user.email,
+      role: user.role,
     });
 
     // Return token in response body

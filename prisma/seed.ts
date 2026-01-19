@@ -15,12 +15,25 @@ async function main() {
 
   // Create Users from different NGOs
   console.log('Creating users from different organizations...');
+  
+  // Admin user for platform management
+  const adminUser = await prisma.user.create({
+    data: {
+      email: 'admin@ledger.org',
+      name: 'System Administrator',
+      organization: 'Ledger Platform',
+      role: 'admin',
+      password: 'hashed_password_placeholder', // In production, hash this properly
+    },
+  });
+
   const userCleanWaterNGO = await prisma.user.create({
     data: {
       email: 'maria@cleanwaterinitiative.org',
       name: 'Maria Rodriguez',
       organization: 'Clean Water Initiative',
       role: 'project_manager',
+      password: 'hashed_password_placeholder',
     },
   });
 
@@ -29,7 +42,8 @@ async function main() {
       email: 'john@healthaccess.org',
       name: 'John Smith',
       organization: 'Health Access Foundation',
-      role: 'contributor',
+      role: 'user',
+      password: 'hashed_password_placeholder',
     },
   });
 
@@ -38,11 +52,12 @@ async function main() {
       email: 'aisha@educationforall.org',
       name: 'Aisha Patel',
       organization: 'Education For All',
-      role: 'contributor',
+      role: 'user',
+      password: 'hashed_password_placeholder',
     },
   });
 
-  console.log(`✅ Created ${3} users from different organizations`);
+  console.log(`✅ Created ${4} users (1 admin, 3 regular users) from different organizations`);
 
   // Create Tags for categorization and discovery
   console.log('Creating tags for effort categorization...');
