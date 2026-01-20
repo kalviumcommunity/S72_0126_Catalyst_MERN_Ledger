@@ -505,6 +505,46 @@ $ curl -X GET http://localhost:3000/api/users \
 # HTTP Status: 200 OK
 ```
 
+## Cache-Aside Caching Strategy
+
+This application employs a **Cache-Aside** strategy with a **Time-to-Live (TTL)** policy to optimize API performance and reduce database load. This section explains how it works and how to test its effectiveness.
+
+### How It Works
+
+The Cache-Aside pattern is an on-demand caching strategy that loads data into the cache only when it is requested. The flow is as follows:
+
+1.  **Request Data**: The application receives a request for data (e.g., a list of users).
+2.  **Check Cache**: It first checks Redis for a corresponding cache key (e.g., `users:list`).
+3.  **Cache Hit**: If the data is found in the cache, it is returned directly to the client, avoiding a database query. This results in a low-latency response.
+4.  **Cache Miss**: If the data is not in the cache, the application queries the primary database (PostgreSQL) to retrieve it.
+5.  **Store in Cache**: The retrieved data is then stored in Redis with a **60-second TTL**. This ensures that subsequent requests for the same data within the next minute will be served from the cache.
+6.  **Return Data**: The data is returned to the client.
+
+### Cache Invalidation
+
+To prevent stale data, the cache is explicitly invalidated whenever the underlying data is modified. For example, when a new user is created via a `POST` request, the `users:list` cache key is deleted. The next `GET` request will trigger a cache miss, fetch the updated data from the database, and repopulate the cache.
+
+### Testing Latency
+
+You can observe the difference between a "cold start" (cache miss) and a "cache hit" using `curl`.
+
+**Instructions:**
+
+1.  **Start the Application**: Ensure the Next.js server and Redis are running.
+2.  **Perform a Cold Start**: Execute the following command to request the user list for the first time. The `source` field in the response will be `"database"`.
+
+    ```bash
+    curl -X GET http://localhost:3000/api/users
+    ```
+
+3.  **Perform a Cache Hit**: Immediately execute the same command again. This time, the `source` will be `"cache"`, and the response time should be significantly faster.
+
+    ```bash
+    curl -X GET http://localhost:3000/api/users
+    ```
+
+By following these steps, you can verify that the Cache-Aside strategy is working correctly and measure the performance improvement.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

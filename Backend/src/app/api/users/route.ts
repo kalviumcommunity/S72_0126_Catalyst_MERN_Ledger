@@ -1,19 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { Router, Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { PrismaClient } from '@prisma/client';
-import { userSchema, userUpdateSchema } from '@/lib/schemas';
+import { userSchema, userUpdateSchema } from '../../../lib/schemas';
+import redis from '../../../lib/redis';
 
+const router = Router();
 const prisma = new PrismaClient();
+const CACHE_KEY_USERS_LIST = 'users:list';
 
 /**
  * GET /api/users
- * Retrieve all users with optional filtering
+ * Retrieve all users with optional filtering and caching
  */
-export async function GET(request: NextRequest) {
+router.get('/', async (req: Request, res: Response) => {
+  const start = Date.now();
   try {
-    const { searchParams } = new URL(request.url);
-    const role = searchParams.get('role');
-    const organization = searchParams.get('organization');
+    // Check Redis cache first
+    const cachedUsers = await redis.get(CACHE_KEY_USERS_LIST);
+    if (cachedUsers) {
+      const latency = Date.now() - start;
+      console.log(`[GET /api/users] Cache Status: HIT | Latency: ${latency}ms`);
+      return res.json({
+        success: true,
+        source: 'cache',
+        latency: `${latency}ms`,
+        data: JSON.parse(cachedUsers),
+      });
+    }
+
+    console.log('Cache Miss');
+    const role = req.query.role as string | undefined;
+    const organization = req.query.organization as string | undefined;
 
     const users = await prisma.user.findMany({
       where: {
@@ -39,22 +56,27 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    // Store result in Redis with a 60-second TTL
+    await redis.set(CACHE_KEY_USERS_LIST, JSON.stringify(users), 'EX', 60);
+
+    const latency = Date.now() - start;
+    console.log(`[GET /api/users] Cache Status: MISS | Latency: ${latency}ms`);
+
+    return res.json({
       success: true,
+      source: 'database',
+      latency: `${latency}ms`,
       data: users,
       count: users.length,
     });
   } catch (error) {
     console.error('Error fetching users:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Failed to fetch users',
-      },
-      { status: 500 }
-    );
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users',
+    });
   }
-}
+});
 
 /**
  * POST /api/users
@@ -66,12 +88,10 @@ export async function GET(request: NextRequest) {
  * - organization (optional)
  * - role (defaults to "contributor")
  */
-export async function POST(request: NextRequest) {
+router.post('/', async (req: Request, res: Response) => {
   try {
-    const body = await request.json();
-
     // Validate request body using Zod
-    const validatedData = userSchema.parse(body);
+    const validatedData = userSchema.parse(req.body);
 
     // Create user in database
     const user = await prisma.user.create({
@@ -83,14 +103,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'User created successfully',
-        data: user,
-      },
-      { status: 201 }
-    );
+    // Invalidate the cache
+    await redis.del(CACHE_KEY_USERS_LIST);
+
+    return res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: user,
+    });
   } catch (error) {
     // Handle Zod validation errors
     if (error instanceof ZodError) {
