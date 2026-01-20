@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractTokenFromHeader } from '@/lib/jwt';
 
 /**
- * Next.js Middleware for Route Protection and RBAC
+ * Next.js Middleware for Route Protection and   
  * 
  * This middleware runs before requests are processed and validates:
  * 1. JWT token presence and validity
@@ -82,9 +82,5 @@ export function middleware(request: NextRequest) {
  * Matches all API routes except auth routes
  */
 export const config = {
-  matcher: [
-    '/api/:path*',
-    // Exclude auth routes
-    '!/api/auth/:path*',
-  ],
+  matcher: '/api/:path*',
 };
