@@ -1,173 +1,8 @@
-"use client";
-import { useMemo } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useUI } from "@/hooks/useUI";
-
-type TaskStatus = "todo" | "in_progress" | "done";
-type ProjectStatus = "planning" | "active" | "completed";
-
-type Task = {
-  id: number;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  priority: "low" | "medium" | "high";
-  assignee: string | null;
-  tags: string[];
-  templateUrl?: string;
-};
-
-type Project = {
-  id: number;
-  title: string;
-  description: string;
-  tags: string[];
-  status: ProjectStatus;
-  isPublic: boolean;
-  owner: string;
-  startDate: string;
-  endDate?: string;
-  tasks: Task[];
-};
-
-const sampleProjects: Project[] = [
-  {
-    id: 1,
-    title: "Water Access Mapping",
-    description: "Catalog rural wells and water points to prevent duplicated field surveys.",
-    tags: ["water", "mapping", "visibility"],
-    status: "active",
-    isPublic: true,
-    owner: "Global Water Co-Op",
-    startDate: "2025-10-12",
-    tasks: [
-      {
-        id: 11,
-        title: "Collect GPS coordinates",
-        description: "Gather lat/long for all surveyed wells.",
-        status: "in_progress",
-        priority: "high",
-        assignee: "Anika Rao",
-        tags: ["data", "field"],
-        templateUrl: "https://templates.ngo/water-gps",
-      },
-      {
-        id: 12,
-        title: "Normalize survey schema",
-        description: "Convert partner CSVs into the shared schema.",
-        status: "todo",
-        priority: "medium",
-        assignee: "Lee Carter",
-        tags: ["schema", "data"],
-      },
-      {
-        id: 13,
-        title: "Publish public dashboard",
-        description: "Deploy a read-only dashboard for public access.",
-        status: "done",
-        priority: "medium",
-        assignee: "Priya S",
-        tags: ["visibility", "dashboard"],
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Logistics Playbook",
-    description: "Reusable SOPs for crisis logistics to avoid reinventing task flows.",
-    tags: ["logistics", "templates", "reusability"],
-    status: "planning",
-    isPublic: true,
-    owner: "Relief Ops Hub",
-    startDate: "2025-12-01",
-    tasks: [
-      {
-        id: 21,
-        title: "Template: cold-chain checklist",
-        description: "Reusable checklist for vaccine cold-chain setup.",
-        status: "in_progress",
-        priority: "high",
-        assignee: "N/A",
-        tags: ["template", "health"],
-        templateUrl: "https://templates.ngo/cold-chain",
-      },
-      {
-        id: 22,
-        title: "Partner intake form",
-        description: "Standardize partner readiness questions.",
-        status: "todo",
-        priority: "low",
-        assignee: null,
-        tags: ["forms", "partners"],
-      },
-    ],
-  },
-  {
-    id: 3,
-    title: "Health Camp Ops",
-    description: "Taggable tasks for rapid deployment of pop-up health camps.",
-    tags: ["health", "ops", "tags"],
-    status: "completed",
-    isPublic: true,
-    owner: "Wellness Now",
-    startDate: "2025-06-05",
-    endDate: "2025-09-18",
-    tasks: [
-      {
-        id: 31,
-        title: "Volunteer roster template",
-        description: "Spreadsheet template for shift planning.",
-        status: "done",
-        priority: "medium",
-        assignee: "Fatima Ali",
-        tags: ["volunteers", "template"],
-        templateUrl: "https://templates.ngo/volunteer-roster",
-      },
-      {
-        id: 32,
-        title: "Health supplies intake",
-        description: "Bill of materials for camp setup.",
-        status: "done",
-        priority: "high",
-        assignee: "Samir K",
-        tags: ["supplies", "checklist"],
-      },
-    ],
-  },
-];
-
-const statusColors: Record<TaskStatus | ProjectStatus, string> = {
-  todo: "bg-amber-100 text-amber-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  done: "bg-emerald-100 text-emerald-800",
-  planning: "bg-slate-100 text-slate-800",
-  active: "bg-indigo-100 text-indigo-800",
-  completed: "bg-emerald-100 text-emerald-800",
-};
-
-const priorityColors = {
-  low: "bg-slate-100 text-slate-700",
-  medium: "bg-amber-100 text-amber-800",
-  high: "bg-rose-100 text-rose-800",
-};
+import Link from "next/link";
 
 export default function Home() {
-  const { user, login, logout, isAuthenticated } = useAuth();
-  const { theme, toggleTheme, sidebarOpen, toggleSidebar } = useUI();
-
-  const { totalTasks, templates, tagCloud } = useMemo(() => {
-    const allTasks = sampleProjects.flatMap((p) => p.tasks);
-    const templates = allTasks.filter((t) => Boolean(t.templateUrl)).length;
-    const tagCount = new Map<string, number>();
-    allTasks.forEach((t) => t.tags.forEach((tag) => tagCount.set(tag, (tagCount.get(tag) ?? 0) + 1)));
-    return {
-      totalTasks: allTasks.length,
-      templates,
-      tagCloud: Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]),
-    };
-  }, []);
-
   return (
+<<<<<< feedback_UI
     <main
       className={`min-h-screen transition-colors px-6 py-10 md:px-12 lg:px-16 ${
         theme === "dark" ? "bg-slate-950 text-slate-50" : "bg-slate-50 text-slate-900"
@@ -349,66 +184,65 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <h3 className="text-lg font-semibold mb-3">Contribution pipeline</h3>
-          <ol className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
-            <li className="flex gap-3">
-              <span className="mt-1 h-5 w-5 flex items-center justify-center rounded-full bg-indigo-600 text-white text-xs">1</span>
-              Post projects as **public** to improve visibility (Project.isPublic default true).
-            </li>
-            <li className="flex gap-3">
-              <span className="mt-1 h-5 w-5 flex items-center justify-center rounded-full bg-indigo-600 text-white text-xs">2</span>
-              Break work into tasks with templateUrl for reuse; tag tasks for discovery.
-            </li>
-            <li className="flex gap-3">
-              <span className="mt-1 h-5 w-5 flex items-center justify-center rounded-full bg-indigo-600 text-white text-xs">3</span>
-              Assign owners and contributors; RBAC middleware keeps admin routes protected.
-            </li>
-            <li className="flex gap-3">
-              <span className="mt-1 h-5 w-5 flex items-center justify-center rounded-full bg-indigo-600 text-white text-xs">4</span>
-              Share templates and tags across projects to prevent duplicated effort.
-            </li>
-          </ol>
-          <div className="mt-4 text-xs text-slate-500">
-            Mirrors the Prisma schema: User owns Projects; Projects → Tasks; Tags via ProjectTag / TaskTag.
-          </div>
+    <div className="max-w-4xl mx-auto">
+      {/* Hero Section */}
+      <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          Welcome to Next.js App Router 🚀
+        </h1>
+        <p className="text-lg text-gray-600 mb-6">
+          This is a demonstration of page routing and dynamic routes using the Next.js 13+ App Router.
+        </p>
+        <div className="flex gap-4">
+          <Link
+            href="/login"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+          >
+            Get Started
+          </Link>
+          <Link
+            href="/users"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold px-6 py-3 rounded-lg transition-colors"
+          >
+            View Users
+          </Link>
+> main
         </div>
-      </section>
+      </div>
 
-      {sidebarOpen && (
-        <aside className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-          <h4 className="font-semibold mb-2">Sidebar (UI context)</h4>
-          <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-            This panel is toggled via UIContext. Use it to surface quick filters, saved searches, or role-based shortcuts.
+      {/* Features Section */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-3">Public Routes</h2>
+          <p className="text-gray-600 mb-4">
+            Access pages without authentication.
           </p>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span>Role</span>
-              <span className="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs">admin</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Auth</span>
-              <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs">{isAuthenticated ? "authenticated" : "guest"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Theme</span>
-              <span className="px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs">{theme}</span>
-            </div>
-          </div>
-        </aside>
-      )}
-    </main>
-  );
-}
+          <ul className="space-y-2">
+            <li className="flex items-center text-gray-700">
+              <span className="mr-2">✓</span> Home Page
+            </li>
+            <li className="flex items-center text-gray-700">
+              <span className="mr-2">✓</span> Login Page
+            </li>
+          </ul>
+        </div>
 
-function StatCard({ label, value, detail }: { label: string; value: number; detail: string }) {
-  return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <div className="text-3xl font-semibold mt-1">{value}</div>
-      <p className="text-xs text-slate-500 mt-1">{detail}</p>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-3">Protected Routes</h2>
+          <p className="text-gray-600 mb-4">
+            Requires authentication to access.
+          </p>
+          <ul className="space-y-2">
+            <li className="flex items-center text-gray-700">
+              <span className="mr-2">🔒</span> Dashboard
+            </li>
+            <li className="flex items-center text-gray-700">
+              <span className="mr-2">🔒</span> User Profiles
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }
