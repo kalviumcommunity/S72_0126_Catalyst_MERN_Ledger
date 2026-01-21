@@ -519,3 +519,40 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment Variables
+
+This project uses Next.js environment file support and separates server-only and public client variables.
+
+- Server-only (never exposed to the browser):
+  - `DATABASE_URL`: Prisma database connection string (e.g., SQLite for local).
+  - `JWT_SECRET`: Secret key for signing JWTs.
+  - `NEXTAUTH_SECRET`, `NEXTAUTH_URL`: Optional if using NextAuth.
+  - `NODE_ENV`: Node environment.
+- Public (client) variables (must start with `NEXT_PUBLIC_`):
+  - `NEXT_PUBLIC_APP_NAME`: App name used in the UI.
+  - `NEXT_PUBLIC_API_BASE`: Public base URL for API calls in the browser.
+  - `NEXT_PUBLIC_ENV`: Simple indicator badge (local/staging/prod).
+
+### Files
+- `.env.example` — Template with placeholders and comments (safe to commit).
+- `.env.local` — Real local values (not committed). The repo `.gitignore` already includes patterns that ignore `.env.local` everywhere in the repo.
+
+### Safe Access Patterns
+- Server-only access (Node runtime): via `process.env.*` in server code (e.g., see [src/lib/jwt.ts](src/lib/jwt.ts)).
+- Client access: only variables prefixed with `NEXT_PUBLIC_` are available to the browser. Example usage is shown in [src/app/page.tsx](src/app/page.tsx) where `NEXT_PUBLIC_APP_NAME` and `NEXT_PUBLIC_ENV` are read.
+
+### Quick Start
+```bash
+# From Frontend/ledger
+cp .env.example .env.local
+# Edit .env.local and set real secrets for local dev
+# Start the app
+npm run dev
+```
+
+### Reflection: Preventing Leaks
+If a teammate accidentally pushed `.env.local` to GitHub, secrets (like `JWT_SECRET` or production DB URLs) could leak, leading to account compromise or data exposure. Our setup reduces this risk by:
+- Keeping real secrets only in `.env.local`, which is git-ignored.
+- Committing only `.env.example` with placeholders.
+- Restricting browser exposure to variables explicitly prefixed with `NEXT_PUBLIC_`.

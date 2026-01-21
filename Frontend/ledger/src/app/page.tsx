@@ -175,7 +175,7 @@ export default function Home() {
     >
       <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-10">
         <div>
-          <p className="uppercase tracking-[0.2em] text-xs text-slate-500">Ledger Platform</p>
+          <p className="uppercase tracking-[0.2em] text-xs text-slate-500">{process.env.NEXT_PUBLIC_APP_NAME ?? 'Ledger'} Platform</p>
           <h1 className="text-3xl md:text-4xl font-bold mt-2">Stop NGO work duplication</h1>
           <p className="mt-2 text-slate-600 dark:text-slate-300 max-w-3xl">
             Visibility, reusability, and smart tagging to make contribution pipelines transparent and prevent teams from reinventing the same tasks.
@@ -184,6 +184,7 @@ export default function Home() {
             <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm">Public by default</span>
             <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm">Reusable templates</span>
             <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-sm">Tag-based discovery</span>
+            <span className="px-3 py-1 rounded-full bg-slate-200 text-slate-800 text-sm">Env: {process.env.NEXT_PUBLIC_ENV ?? 'local'}</span>
           </div>
         </div>
         <div className="flex flex-col gap-3 w-full md:w-auto">
