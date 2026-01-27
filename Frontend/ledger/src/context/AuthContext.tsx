@@ -1,17 +1,20 @@
 "use client";
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
+export type NgoInfo = {
+  id: number;
+  name: string;
+  location: string;
+  contactNumber?: string | null;
+  description?: string | null;
+};
+
 export type AuthUser = {
   id: number;
   name: string;
   email: string;
   role: string;
-  ngo?: {
-    id: number;
-    name: string;
-    location: string;
-    description?: string | null;
-  } | null;
+  ngos?: NgoInfo[];  // Array of NGOs (one account can have multiple locations)
 };
 
 interface AuthContextType {

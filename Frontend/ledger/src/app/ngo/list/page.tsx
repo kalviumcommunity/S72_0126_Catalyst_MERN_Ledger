@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Ngo {
   id: number;
@@ -14,9 +15,13 @@ interface Ngo {
 }
 
 export default function NgoListPage() {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [ngos, setNgos] = useState<Ngo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isNgo = user?.role === "ngo";
+  const isRegularUser = isAuthenticated && user?.role === "user";
 
   useEffect(() => {
     const fetchNgos = async () => {
@@ -51,10 +56,34 @@ export default function NgoListPage() {
           </p>
         </div>
 
+        {/* Show different options based on user role */}
         <div className="flex gap-3 text-sm">
-          <Link className="text-indigo-600" href="/ngo/register">Register a new location</Link>
-          <span className="text-slate-400">·</span>
-          <Link className="text-indigo-600" href="/login">Login</Link>
+          {!authLoading && (
+            <>
+              {/* Not logged in - show register and login */}
+              {!isAuthenticated && (
+                <>
+                  <Link className="text-indigo-600" href="/ngo/register">Register as NGO</Link>
+                  <span className="text-slate-400">·</span>
+                  <Link className="text-indigo-600" href="/login">Login</Link>
+                </>
+              )}
+              
+              {/* Logged in as NGO - show add location */}
+              {isNgo && (
+                <>
+                  <Link className="text-indigo-600" href="/ngo/claim">+ Add New Location</Link>
+                  <span className="text-slate-400">·</span>
+                  <Link className="text-indigo-600" href="/ngo/my">Manage My Locations</Link>
+                </>
+              )}
+              
+              {/* Logged in as regular user - just viewing, no action buttons */}
+              {isRegularUser && (
+                <span className="text-slate-500">Viewing as: {user?.name} (User)</span>
+              )}
+            </>
+          )}
         </div>
 
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
