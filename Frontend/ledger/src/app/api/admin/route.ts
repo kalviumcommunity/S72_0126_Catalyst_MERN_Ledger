@@ -1,50 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-/**
- * Admin-only route - Protected by middleware
- * Only users with 'admin' role can access this endpoint
- * 
- * This endpoint allows admins to:
- * - View all users in the system
- * - See user statistics
- * - Manage user roles (future enhancement)
- */
+// Admin-only route. Middleware ensures only role === "admin" reaches these handlers.
 export async function GET(request: NextRequest) {
   try {
-    // User info is already validated by middleware
-    // Extract from headers added by middleware
     const userRole = request.headers.get('x-user-role');
     const userEmail = request.headers.get('x-user-email');
 
-    // Fetch all users (admin privilege)
     const users = await prisma.user.findMany({
       select: {
         id: true,
         email: true,
         name: true,
-        organization: true,
         role: true,
         createdAt: true,
         updatedAt: true,
-        _count: {
+        ngo: {
           select: {
-            projects: true,
-            tasks: true,
+            id: true,
+            name: true,
+            location: true,
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Get user statistics
     const stats = {
       totalUsers: users.length,
-      adminCount: users.filter((u: { role: string }) => u.role === 'admin').length,
-      userCount: users.filter((u: { role: string }) => u.role === 'user').length,
-      otherRoles: users.filter((u: { role: string }) => u.role !== 'admin' && u.role !== 'user').length,
+      adminCount: users.filter((u) => u.role === 'admin').length,
+      ngoAccounts: users.filter((u) => u.role === 'ngo').length,
+      viewers: users.filter((u) => u.role === 'user').length,
+      totalNgos: await prisma.ngo.count(),
     };
 
     return NextResponse.json(
@@ -64,20 +51,11 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('Admin route error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Internal server error',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }
 
-/**
- * Update user role (admin only)
- * Example: PATCH /api/admin { "userId": 1, "newRole": "admin" }
- */
+// Update user role (admin only)
 export async function PATCH(request: NextRequest) {
   try {
     const userEmail = request.headers.get('x-user-email');
@@ -85,30 +63,19 @@ export async function PATCH(request: NextRequest) {
     const { userId, newRole } = body;
 
     if (!userId || !newRole) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'userId and newRole are required',
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: 'userId and newRole are required' }, { status: 400 });
     }
 
-    // Validate role
-    const validRoles = ['admin', 'user', 'contributor', 'project_manager'];
+    const validRoles = ['admin', 'user', 'ngo'];
     if (!validRoles.includes(newRole)) {
       return NextResponse.json(
-        {
-          success: false,
-          message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
-        },
+        { success: false, message: `Invalid role. Must be one of: ${validRoles.join(', ')}` },
         { status: 400 }
       );
     }
 
-    // Update user role
     const updatedUser = await prisma.user.update({
-      where: { id: parseInt(userId) },
+      where: { id: parseInt(userId, 10) },
       data: { role: newRole },
       select: {
         id: true,
@@ -129,20 +96,11 @@ export async function PATCH(request: NextRequest) {
     );
   } catch (error) {
     console.error('Admin PATCH error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Failed to update user role',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: 'Failed to update user role' }, { status: 500 });
   }
 }
 
-/**
- * Delete user (admin only)
- * Example: DELETE /api/admin?userId=5
- */
+// Delete user (admin only)
 export async function DELETE(request: NextRequest) {
   try {
     const userEmail = request.headers.get('x-user-email');
@@ -150,19 +108,10 @@ export async function DELETE(request: NextRequest) {
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'userId query parameter is required',
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: 'userId query parameter is required' }, { status: 400 });
     }
 
-    // Delete user
-    await prisma.user.delete({
-      where: { id: parseInt(userId) },
-    });
+    await prisma.user.delete({ where: { id: parseInt(userId, 10) } });
 
     return NextResponse.json(
       {
@@ -173,12 +122,6 @@ export async function DELETE(request: NextRequest) {
     );
   } catch (error) {
     console.error('Admin DELETE error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Failed to delete user',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: 'Failed to delete user' }, { status: 500 });
   }
 }

@@ -13,10 +13,15 @@ import { verifyToken, extractTokenFromHeader } from '@/lib/jwt';
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method;
 
   // Skip middleware for non-API routes and public routes
-  if (!pathname.startsWith('/api/') || 
-      pathname.startsWith('/api/auth/')) {
+  if (!pathname.startsWith('/api/') || pathname.startsWith('/api/auth/')) {
+    return NextResponse.next();
+  }
+
+  // Public NGO listing (view-only)
+  if (pathname.startsWith('/api/ngos') && (method === 'GET' || method === 'OPTIONS')) {
     return NextResponse.next();
   }
 
