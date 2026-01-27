@@ -1,50 +1,31 @@
 "use client";
 import Link from "next/link";
-import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
-interface UserData {
-  username: string;
-  email: string;
-  role: string;
-  userId: number;
-}
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, isAuthenticated, loading, logout } = useAuth();
 
-  useEffect(() => {
-    // Decode JWT token manually (it's just base64)
-    const token = Cookies.get("token");
-    console.log("Dashboard: Token found:", !!token);
-    
-    if (token) {
-      try {
-        // JWT format: header.payload.signature
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          // Decode the payload (second part)
-          const payload = parts[1];
-          const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as UserData;
-          console.log("Dashboard: User decoded:", decoded.username);
-          setUser(decoded);
-        } else {
-          console.error("Dashboard: Invalid token format");
-        }
-      } catch (error) {
-        console.error("Dashboard: Error decoding token:", error);
-      }
-    } else {
-      console.log("Dashboard: No token, should redirect via middleware");
-    }
-  }, [router]);
-
-  function handleLogout() {
-    Cookies.remove("token");
-    router.push("/login");
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
   }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="max-w-6xl mx-auto text-center py-12">
+        <h1 className="text-2xl font-bold mb-4">Please Login</h1>
+        <Link href="/login" className="text-blue-600 hover:underline">
+          Go to Login
+        </Link>
+      </div>
+    );
+  }
+
+  const isNgo = user.role === "ngo";
+  const ngos = user.ngos || [];
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -52,212 +33,162 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
           <p className="text-gray-600">
-            Welcome back, <strong>{user?.username || "User"}</strong>!
+            Welcome back, <strong>{user.name}</strong>!
           </p>
         </div>
         <button
-          onClick={handleLogout}
+          onClick={logout}
           className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
         >
           Logout
         </button>
       </div>
 
-      {user && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold">
-              {user.username.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">{user.username}</p>
-              <p className="text-sm text-gray-600">{user.email}</p>
-              <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                user.role === "Admin" 
-                  ? "bg-purple-100 text-purple-800" 
-                  : "bg-blue-100 text-blue-800"
-              }`}>
-                {user.role}
-              </span>
-            </div>
+      {/* User Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold">
+            {user.name.charAt(0).toUpperCase()}
           </div>
-        </div>
-      )}
-
-      {/* Stats Grid */}
-      <div className="grid md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
+          <div>
+            <p className="font-semibold text-gray-900">{user.name}</p>
+            <p className="text-sm text-gray-600">{user.email}</p>
+            <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+              user.role === "admin" 
+                ? "bg-purple-100 text-purple-800" 
+                : user.role === "ngo"
+                ? "bg-green-100 text-green-800"
+                : "bg-blue-100 text-blue-800"
+            }`}>
+              {user.role.toUpperCase()}
+            </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">3</p>
-          <p className="text-xs text-green-600 mt-1">+1 this week</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Active Sessions</h3>
-            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">1</p>
-          <p className="text-xs text-gray-500 mt-1">Current user</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Pages</h3>
-            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">5</p>
-          <p className="text-xs text-gray-500 mt-1">Protected routes</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Uptime</h3>
-            <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">99%</p>
-          <p className="text-xs text-gray-500 mt-1">Last 30 days</p>
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="space-y-3">
+      {/* NGO Section - Only for NGO users */}
+      {isNgo && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Your NGO Locations</h2>
             <Link
-              href="/users"
-              className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+              href="/ngo/claim"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-100 p-2 rounded">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </div>
-                <span className="font-medium text-gray-900">View All Users</span>
-              </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              + Add Location
             </Link>
-
+          </div>
+          
+          {ngos.length === 0 ? (
+            <p className="text-gray-600">You haven&apos;t registered any locations yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {ngos.map((ngo) => (
+                <div key={ngo.id} className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold">{ngo.name}</h3>
+                  <p className="text-sm text-gray-600">{ngo.location}</p>
+                  {ngo.description && (
+                    <p className="text-sm text-gray-500 mt-1">{ngo.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {ngos.length > 0 && (
             <Link
-              href={`/users/${user?.userId || 1}`}
+              href="/ngo/my"
+              className="inline-block mt-4 text-blue-600 hover:underline text-sm"
+            >
+              Manage your locations →
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="space-y-3">
+          <Link
+            href="/ngo/list"
+            className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-100 p-2 rounded">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <span className="font-medium text-gray-900">Browse All NGOs</span>
+            </div>
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+
+          {isNgo && (
+            <Link
+              href="/ngo/claim"
               className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="bg-green-100 p-2 rounded">
                   <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-                <span className="font-medium text-gray-900">My Profile</span>
+                <span className="font-medium text-gray-900">Claim New Location</span>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
+          )}
 
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-red-100 p-2 rounded">
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </div>
-                <span className="font-medium text-gray-900">Logout</span>
-              </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="bg-blue-100 p-2 rounded-full mt-1">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <button
+            onClick={logout}
+            className="w-full flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-red-100 p-2 rounded">
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Successfully logged in</p>
-                <p className="text-xs text-gray-500">Just now</p>
-              </div>
+              <span className="font-medium text-gray-900">Logout</span>
             </div>
-
-            <div className="flex items-start gap-3">
-              <div className="bg-green-100 p-2 rounded-full mt-1">
-                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Session started</p>
-                <p className="text-xs text-gray-500">Token expires in 24 hours</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="bg-purple-100 p-2 rounded-full mt-1">
-                <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Welcome to the dashboard</p>
-                <p className="text-xs text-gray-500">Explore the features</p>
-              </div>
-            </div>
-          </div>
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       </div>
 
+      {/* Info */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Protected Route Information</h2>
-        <div className="prose max-w-none">
-          <p className="text-gray-600 mb-4">
-            This page is protected by middleware. Here's what makes it secure:
-          </p>
-          <ul className="space-y-2 text-gray-600">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Account Information</h2>
+        <ul className="space-y-2 text-gray-600">
+          <li className="flex items-start">
+            <span className="mr-2">👤</span>
+            <span><strong>Name:</strong> {user.name}</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-2">📧</span>
+            <span><strong>Email:</strong> {user.email}</span>
+          </li>
+          <li className="flex items-start">
+            <span className="mr-2">🔑</span>
+            <span><strong>Role:</strong> {user.role}</span>
+          </li>
+          {isNgo && (
             <li className="flex items-start">
-              <span className="mr-2 mt-1">🔐</span>
-              <span><strong>Token Validation:</strong> Middleware checks for a valid JWT token in cookies</span>
+              <span className="mr-2">📍</span>
+              <span><strong>Locations:</strong> {ngos.length} registered</span>
             </li>
-            <li className="flex items-start">
-              <span className="mr-2 mt-1">🚫</span>
-              <span><strong>Automatic Redirect:</strong> Unauthenticated users are redirected to login</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2 mt-1">⚡</span>
-              <span><strong>Edge Middleware:</strong> Runs before the page renders for optimal performance</span>
-            </li>
-            <li className="flex items-start">
-              <span className="mr-2 mt-1">👤</span>
-              <span><strong>User Session:</strong> JWT contains user ID: {user?.userId}, Role: {user?.role}</span>
-            </li>
-          </ul>
-        </div>
+          )}
+        </ul>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        ngo: true,
+        ngos: true,  // One user can have multiple NGO locations
       },
     });
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           name: user.name,
           role: user.role,
-          ngo: user.ngo,
+          ngos: user.ngos,  // Array of NGO locations
         },
       },
       { status: 200 }

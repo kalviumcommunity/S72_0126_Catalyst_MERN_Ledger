@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       role = 'user',
       ngoName,
       location,
+      contactNumber,
       description,
     } = body;
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
-      const { user, ngo } = await prisma.$transaction(async (tx) => {
+      const { user, ngos } = await prisma.$transaction(async (tx) => {
         const createdUser = await tx.user.create({
           data: {
             name,
@@ -52,19 +53,20 @@ export async function POST(request: NextRequest) {
         });
 
         if (role !== 'ngo') {
-          return { user: createdUser, ngo: null };
+          return { user: createdUser, ngos: [] };
         }
 
         const createdNgo = await tx.ngo.create({
           data: {
             name: ngoName,
             location,
+            contactNumber: contactNumber || null,
             description: description || null,
             accountOwnerId: createdUser.id,
           },
         });
 
-        return { user: createdUser, ngo: createdNgo };
+        return { user: createdUser, ngos: [createdNgo] };
       });
 
       const token = generateToken({ userId: user.id, email: user.email, role: user.role });
@@ -78,8 +80,8 @@ export async function POST(request: NextRequest) {
             email: user.email,
             name: user.name,
             role: user.role,
+            ngos,  // Array of NGOs
           },
-          ngo,
         },
         { status: 201 }
       );

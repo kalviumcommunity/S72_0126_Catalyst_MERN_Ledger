@@ -1,0 +1,46 @@
+// Prisma schema for Ledger (Next.js app)
+// This lives inside Frontend/ledger so `prisma generate` works correctly.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Roles: "user" (viewer), "ngo" (can claim locations)
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ngos Ngo[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// One location per NGO entry. An NGO account can have multiple locations.
+model Ngo {
+  id             Int      @id @default(autoincrement())
+  name           String
+  location       String
+  contactNumber  String?
+  description    String?
+  accountOwnerId Int
+  accountOwner   User     @relation(fields: [accountOwnerId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([location])
+  @@index([location])
+  @@index([accountOwnerId])
+  @@map("ngos")
+}
+
