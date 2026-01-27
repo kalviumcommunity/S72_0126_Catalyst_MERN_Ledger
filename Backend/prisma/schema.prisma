@@ -6,123 +6,39 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-// User entity - Represents contributors or NGO staff
+// Core user account. Roles drive access ("user" = viewer, "ngo" = NGO account holder, "admin" = platform operator).
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  name         String
-  password     String   // Hashed password using bcrypt
-  organization String?
-  role         String   @default("contributor")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relations
-  projects     Project[]
-  tasks        Task[]
+  // Optional one-to-one NGO ownership (only for role === "ngo")
+  ngo Ngo?
 
   @@index([email])
   @@map("users")
 }
 
-// Project entity - Represents high-level efforts (e.g., "Clean Water Initiative")
-// KEY FEATURE: isPublic ensures transparency and visibility across organizations
-model Project {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  isPublic    Boolean  @default(true)
-  status      String   @default("active")
-  startDate   DateTime @default(now())
-  endDate     DateTime?
-  ownerId     Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Registered NGO with a unique physical/service location. One NGO per location (BookMyShow-style slotting).
+model Ngo {
+  id             Int      @id @default(autoincrement())
+  name           String
+  location       String
+  description    String?
+  accountOwnerId Int      @unique
+  accountOwner   User     @relation(fields: [accountOwnerId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  // Relations
-  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  tasks       Task[]
-  projectTags ProjectTag[]
-
-  @@index([ownerId])
-  @@index([status])
-  @@index([isPublic])
-  @@map("projects")
-}
-
-// Task entity - Represents reusable pipeline steps (e.g., "Site Survey Template")
-// KEY FEATURE: templateUrl enables sharing of reusable resources
-model Task {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  templateUrl String?
-  status      String   @default("pending")
-  priority    String   @default("medium")
-  projectId   Int
-  assigneeId  Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee    User?     @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
-  taskTags    TaskTag[]
-
-  @@index([projectId])
-  @@index([assigneeId])
-  @@index([status])
-  @@map("tasks")
-}
-
-// Tag entity - Categorizes efforts to prevent duplication (e.g., "Logistics," "Sustainability")
-// KEY FEATURE: Enables discovery of similar work across organizations
-model Tag {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  projectTags ProjectTag[]
-  taskTags    TaskTag[]
-
-  @@index([name])
-  @@map("tags")
-}
-
-// Junction table for Project-Tag many-to-many relationship
-model ProjectTag {
-  projectId Int
-  tagId     Int
-  createdAt DateTime @default(now())
-
-  // Relations
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([projectId, tagId])
-  @@index([projectId])
-  @@index([tagId])
-  @@map("project_tags")
-}
-
-// Junction table for Task-Tag many-to-many relationship
-model TaskTag {
-  taskId    Int
-  tagId     Int
-  createdAt DateTime @default(now())
-
-  // Relations
-  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  tag       Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([taskId, tagId])
-  @@index([taskId])
-  @@index([tagId])
-  @@map("task_tags")
+  @@unique([location])
+  @@index([location])
+  @@map("ngos")
 }

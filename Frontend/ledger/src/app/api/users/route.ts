@@ -1,60 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-/**
- * Protected route - Requires valid JWT token (enforced by middleware)
- * Accessible to all authenticated users regardless of role
- * Returns the current user's data based on their token
- */
+// Protected route - requires middleware to have validated the JWT and injected headers.
 export async function GET(request: NextRequest) {
   try {
-    // User info is validated by middleware and passed via headers
     const userId = request.headers.get('x-user-id');
     const userEmail = request.headers.get('x-user-email');
     const userRole = request.headers.get('x-user-role');
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'User information not found in request' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'User information not found in request' }, { status: 401 });
     }
 
-    // Fetch user data from database
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
+      where: { id: parseInt(userId, 10) },
       select: {
         id: true,
         email: true,
         name: true,
-        organization: true,
         role: true,
         createdAt: true,
         updatedAt: true,
-        _count: {
+        ngo: {
           select: {
-            projects: true,
-            tasks: true,
+            id: true,
+            name: true,
+            location: true,
+            description: true,
           },
         },
       },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Return protected user data
     return NextResponse.json(
       {
         success: true,
         message: 'User data accessed successfully',
         user,
         sessionInfo: {
-          userId: parseInt(userId),
+          userId: parseInt(userId, 10),
           email: userEmail,
           role: userRole,
         },
@@ -63,9 +51,6 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('Users route error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

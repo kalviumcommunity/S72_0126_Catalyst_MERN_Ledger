@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -34,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
+          <AuthProvider>{children}</AuthProvider>
         </main>
 
         {/* Footer */}
