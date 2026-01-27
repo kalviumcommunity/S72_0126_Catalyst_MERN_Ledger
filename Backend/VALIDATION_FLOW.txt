@@ -1,0 +1,230 @@
+"""
+Zod Validation Flow Diagram
+============================
+
+This diagram shows how data flows through the validation layer.
+
+
+CLIENT REQUEST
+     │
+     │ POST /api/tasks
+     │ Body: { title: "Task", templateUrl: "not-a-url", projectId: 1 }
+     │
+     ▼
+┌────────────────────────────────────────┐
+│   API Route Handler (route.ts)        │
+│                                        │
+│   1. Parse request body                │
+│   2. Call taskSchema.parse(body)       │
+└────────────────┬───────────────────────┘
+                 │
+                 ▼
+┌────────────────────────────────────────┐
+│   Zod Schema Validation                │
+│   (src/lib/schemas/task.schema.ts)    │
+│                                        │
+│   Checks:                              │
+│   ✓ title: min 3 chars                 │
+│   ✗ templateUrl: "not-a-url" invalid!  │
+│   ✓ projectId: positive integer        │
+└────────────────┬───────────────────────┘
+                 │
+                 │ Validation Fails!
+                 │ Throws ZodError
+                 ▼
+┌────────────────────────────────────────┐
+│   Error Handling (catch block)         │
+│                                        │
+│   if (error instanceof ZodError) {     │
+│     Format errors into array           │
+│     Return 400 Bad Request             │
+│   }                                    │
+└────────────────┬───────────────────────┘
+                 │
+                 ▼
+CLIENT RESPONSE (400)
+{
+  "success": false,
+  "message": "Validation Error",
+  "errors": [
+    {
+      "field": "templateUrl",
+      "message": "Template URL must be a valid URL format"
+    }
+  ]
+}
+
+
+SUCCESSFUL FLOW (Valid Data)
+=============================
+
+CLIENT REQUEST
+     │
+     │ POST /api/tasks
+     │ Body: { title: "Task", templateUrl: "https://example.com", projectId: 1 }
+     │
+     ▼
+┌────────────────────────────────────────┐
+│   API Route Handler                    │
+│   taskSchema.parse(body)               │
+└────────────────┬───────────────────────┘
+                 │
+                 ▼
+┌────────────────────────────────────────┐
+│   Zod Validation                       │
+│   ✓ All checks pass                    │
+│   Returns validated data               │
+└────────────────┬───────────────────────┘
+                 │
+                 ▼
+┌────────────────────────────────────────┐
+│   Database Operation                   │
+│   prisma.task.create({                 │
+│     data: validatedData                │
+│   })                                   │
+└────────────────┬───────────────────────┘
+                 │
+                 ▼
+CLIENT RESPONSE (201)
+{
+  "success": true,
+  "message": "Task created successfully",
+  "data": {
+    "id": 5,
+    "title": "Task",
+    "templateUrl": "https://example.com",
+    "projectId": 1,
+    ...
+  }
+}
+
+
+SCHEMA REUSABILITY
+==================
+
+┌─────────────────────────────┐
+│  src/lib/schemas/           │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  task.schema.ts       │  │
+│  │  - taskSchema         │  │
+│  │  - TaskInput type     │  │
+│  └───────────┬───────────┘  │
+│              │              │
+└──────────────┼──────────────┘
+               │
+               │ Imported by
+               │
+       ┌───────┴─────────┐
+       │                 │
+       ▼                 ▼
+┌─────────────┐   ┌─────────────┐
+│  Server API │   │  Client     │
+│  Validation │   │  Form       │
+└─────────────┘   └─────────────┘
+       │                 │
+       └────────┬────────┘
+                │
+                ▼
+        Single Source of Truth
+        (No duplicate validation logic)
+
+
+TYPE SAFETY FLOW
+================
+
+taskSchema (Zod)
+     │
+     │ z.infer<typeof taskSchema>
+     │
+     ▼
+TaskInput (TypeScript type)
+     │
+     │ Used in function signatures
+     │
+     ▼
+┌─────────────────────────────────┐
+│ async function createTask(      │
+│   data: TaskInput               │
+│ ): Promise<Task> {              │
+│   // TypeScript enforces type   │
+│   return prisma.task.create()   │
+│ }                               │
+└─────────────────────────────────┘
+     │
+     │ Compile-time type checking
+     │
+     ▼
+Prevents type errors before runtime!
+
+
+COMPARISON: Before vs After Zod
+================================
+
+BEFORE (Manual Validation)
+┌────────────────────────────────────────┐
+│  if (!body.title || body.title.length < 3) {    │
+│    return { error: "Title too short" }          │
+│  }                                              │
+│  if (body.templateUrl && !isValidUrl(...)) {    │
+│    return { error: "Invalid URL" }              │
+│  }                                              │
+│  // ... 20 more lines of validation             │
+└────────────────────────────────────────┘
+Problems:
+- Duplicated across multiple files
+- Hard to maintain
+- No TypeScript type safety
+- Inconsistent error messages
+
+
+AFTER (Zod Validation)
+┌────────────────────────────────────────┐
+│  const validatedData = taskSchema.parse(body);  │
+└────────────────────────────────────────┘
+Benefits:
+✓ Single line of code
+✓ Shared schema file
+✓ Automatic TypeScript types
+✓ Consistent error format
+✓ Easy to extend
+
+
+KEY VALIDATION POINTS
+=====================
+
+User Schema
+├── email: Must be valid format (prevents garbage contact info)
+└── name: Required (prevents anonymous contributions)
+
+Project Schema
+├── title: Min 5 chars (prevents unclear project names)
+├── isPublic: Boolean, defaults true (ensures transparency)
+└── dates: endDate > startDate (prevents logical errors)
+
+Task Schema (CRITICAL for NGO reusability)
+├── title: Min 3 chars
+├── templateUrl: MUST be valid URL ← Ensures reusable resources work!
+├── status: Enum only (pending/in-progress/completed/blocked)
+└── priority: Enum only (low/medium/high/urgent)
+
+
+PREVENTING DUPLICATION (Meta-Application)
+==========================================
+
+NGO Platform Goal:
+┌──────────────────────────────────────────┐
+│  Prevent NGOs from duplicating work      │
+│  Solution: Share projects & templates    │
+└──────────────────────────────────────────┘
+
+Development Architecture:
+┌──────────────────────────────────────────┐
+│  Prevent devs from duplicating code      │
+│  Solution: Share Zod schemas & types     │
+└──────────────────────────────────────────┘
+
+Both use the same principle:
+→ Centralize → Share → Reuse
+
+"""

@@ -615,3 +615,293 @@ This database structure doesn't just *store* data—it actively **prevents dupli
 ✅ Comprehensive indexes for performance  
 
 **Result**: A database that transforms isolated NGO work into a collaborative ecosystem.
+
+---
+
+## Zod Validation Layer
+
+### Overview
+To prevent "garbage data" from entering our NGO collaboration pipeline, we've implemented a comprehensive Zod validation layer. This ensures that all data submitted to our API endpoints is valid, type-safe, and meets our transparency and reusability requirements.
+
+### Schema Definitions
+
+All shared Zod schemas are located in `src/lib/schemas/` and provide validation rules that align with our Prisma database models.
+
+#### User Schema
+Validates email format and name presence for proper contributor attribution:
+
+```typescript
+import { z } from 'zod';
+
+export const userSchema = z.object({
+  email: z.string().email({ message: "Invalid email format" }),
+  name: z.string().min(1, { message: "Name is required" }),
+  organization: z.string().optional(),
+  role: z.string().default("contributor"),
+});
+
+// TypeScript type inferred from schema
+export type UserInput = z.infer<typeof userSchema>;
+```
+
+#### Project Schema
+Ensures transparency and visibility across organizations with minimum title length and visibility control:
+
+```typescript
+export const projectSchema = z.object({
+  title: z.string().min(5, { message: "Project title must be at least 5 characters" }),
+  description: z.string().optional(),
+  isPublic: z.boolean().default(true), // KEY: Enables cross-organization visibility
+  status: z.enum(["active", "completed", "archived", "paused"]).default("active"),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  ownerId: z.number().int().positive({ message: "Owner ID must be a positive integer" }),
+}).refine(
+  (data) => {
+    if (data.startDate && data.endDate) {
+      return new Date(data.endDate) > new Date(data.startDate);
+    }
+    return true;
+  },
+  {
+    message: "End date must be after start date",
+    path: ["endDate"],
+  }
+);
+
+export type ProjectInput = z.infer<typeof projectSchema>;
+```
+
+#### Task Schema
+Validates reusable task templates with **strict URL validation** for the `templateUrl` field:
+
+```typescript
+export const taskSchema = z.object({
+  title: z.string().min(3, { message: "Task title must be at least 3 characters" }),
+  description: z.string().optional(),
+  templateUrl: z.string().url({ message: "Template URL must be a valid URL format" }).optional(),
+  // ⬆️ CRITICAL: Ensures reusability by validating URL format
+  status: z.enum(["pending", "in-progress", "completed", "blocked"]).default("pending"),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  projectId: z.number().int().positive({ message: "Project ID must be a positive integer" }),
+  assigneeId: z.number().int().positive({ message: "Assignee ID must be a positive integer" }).optional(),
+});
+
+export type TaskInput = z.infer<typeof taskSchema>;
+```
+
+### API Implementation
+
+All API routes use Zod's `.parse()` method with comprehensive error handling:
+
+```typescript
+import { ZodError } from 'zod';
+import { taskSchema } from '@/lib/schemas';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Validate using Zod
+    const validatedData = taskSchema.parse(body);
+    
+    // Create task with validated data
+    const task = await prisma.task.create({ data: validatedData });
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Task created successfully',
+      data: task,
+    }, { status: 201 });
+    
+  } catch (error) {
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      const errors = error.errors.map((err) => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return NextResponse.json({
+        success: false,
+        message: 'Validation Error',
+        errors,
+      }, { status: 400 });
+    }
+    
+    // Handle other errors
+    return NextResponse.json({
+      success: false,
+      message: 'Failed to create task',
+    }, { status: 500 });
+  }
+}
+```
+
+### Error Response Structure
+
+All validation errors return a consistent 400 status code with this structure:
+
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "errors": [
+    {
+      "field": "templateUrl",
+      "message": "Template URL must be a valid URL format"
+    }
+  ]
+}
+```
+
+### Test Cases
+
+#### ✅ Successful Request - Create Task with Valid Template URL
+
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Site Survey Template",
+    "description": "Standardized checklist for water quality assessment",
+    "templateUrl": "https://docs.google.com/document/d/abc123/template",
+    "status": "pending",
+    "priority": "high",
+    "projectId": 1
+  }'
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Task created successfully",
+  "data": {
+    "id": 5,
+    "title": "Site Survey Template",
+    "description": "Standardized checklist for water quality assessment",
+    "templateUrl": "https://docs.google.com/document/d/abc123/template",
+    "status": "pending",
+    "priority": "high",
+    "projectId": 1,
+    "assigneeId": null,
+    "createdAt": "2026-01-16T12:00:00.000Z",
+    "updatedAt": "2026-01-16T12:00:00.000Z"
+  }
+}
+```
+
+#### ❌ Failed Request - Invalid Template URL
+
+```bash
+curl -X POST http://localhost:3000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Site Survey Template",
+    "templateUrl": "not-a-valid-url",
+    "projectId": 1
+  }'
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "errors": [
+    {
+      "field": "templateUrl",
+      "message": "Template URL must be a valid URL format"
+    }
+  ]
+}
+```
+
+#### ❌ Failed Request - Missing Required Fields
+
+```bash
+curl -X POST http://localhost:3000/api/projects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "NGO",
+    "ownerId": 1
+  }'
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Validation Error",
+  "errors": [
+    {
+      "field": "title",
+      "message": "Project title must be at least 5 characters"
+    }
+  ]
+}
+```
+
+#### ✅ Successful Request - Create Project with Visibility Control
+
+```bash
+curl -X POST http://localhost:3000/api/projects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Clean Water Initiative 2026",
+    "description": "Bringing clean water to rural communities",
+    "isPublic": true,
+    "status": "active",
+    "ownerId": 1
+  }'
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Project created successfully",
+  "data": {
+    "id": 3,
+    "title": "Clean Water Initiative 2026",
+    "description": "Bringing clean water to rural communities",
+    "isPublic": true,
+    "status": "active",
+    "ownerId": 1,
+    "createdAt": "2026-01-16T12:05:00.000Z"
+  }
+}
+```
+
+### Reflection: Shared Schemas Prevent Duplicate Work
+
+The Zod validation layer demonstrates several key principles that prevent duplication in development:
+
+1. **Single Source of Truth**: By defining validation schemas in `src/lib/schemas/`, we eliminate duplicate validation logic across the codebase. Both client and server can import the same schemas, ensuring consistency.
+
+2. **Type Safety with `z.infer<>`**: TypeScript types are automatically generated from Zod schemas, preventing the need to manually define and maintain separate type definitions. This eliminates type mismatches between validation rules and TypeScript types.
+
+3. **Reusable Error Handling**: The consistent error response structure (`{ success, message, errors }`) means developers don't need to implement different error handling patterns across different API endpoints.
+
+4. **Development Process Parallel**: Just as NGOs benefit from seeing each other's work through `isPublic` projects and `templateUrl` resources, developers benefit from shared validation schemas that prevent redundant validation code.
+
+5. **Maintainability**: When validation rules change (e.g., increasing minimum title length), we update **one schema file** instead of searching through multiple API handlers. This mirrors how NGOs using shared templates only need to update one template instead of each organization duplicating the update work.
+
+6. **Clear Communication**: Structured error messages with field-specific feedback help both developers and API consumers understand exactly what's wrong, reducing back-and-forth debugging time—similar to how clear project descriptions reduce duplicate planning efforts between NGOs.
+
+**Key Insight**: The same principles that make our NGO platform effective (transparency, reusability, discoverability) are embedded in our development architecture through shared Zod schemas. This "meta-application" of the problem statement ensures the codebase itself prevents the duplication it aims to solve for users.
+
+### Available API Endpoints
+
+- `POST /api/users` - Create user with email/name validation
+- `PUT /api/users` - Update user with partial validation
+- `GET /api/users` - Retrieve users (no validation required)
+
+- `POST /api/projects` - Create project with title (min 5 chars) and visibility validation
+- `PUT /api/projects` - Update project with partial validation
+- `GET /api/projects` - Retrieve projects, optionally filtered by `isPublic`
+
+- `POST /api/tasks` - Create task with **strict templateUrl validation**
+- `PUT /api/tasks` - Update task with partial validation
+- `GET /api/tasks` - Retrieve tasks, optionally filtered by `projectId`, `status`, or `hasTemplate`

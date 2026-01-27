@@ -36,10 +36,9 @@ export default function Home() {
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Ledger · NGO slotting</p>
           <h1 className="text-4xl font-semibold">Prevent duplicate NGO registrations</h1>
           <p className="text-slate-600 max-w-3xl">
-            Two roles: NGO (can reserve exactly one location) and User (view-only). When an NGO claims a
-            location, nobody else can book that slot. Every step is backed by the API and Prisma schema.
+            Two roles: NGO (can reserve exactly one location) and User (view-only). When an NGO claims a location, nobody else can book that slot. Every step is backed by the API and Prisma schema.
           </p>
-          <div className="flex gap-3 text-sm text-slate-700">
+          <div className="flex flex-wrap gap-3 text-sm text-slate-700">
             <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">Unique location lock</span>
             <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">RBAC: user vs NGO</span>
             <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800">Public NGO list</span>
