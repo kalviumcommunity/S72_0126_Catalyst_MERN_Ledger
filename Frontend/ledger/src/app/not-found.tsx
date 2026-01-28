@@ -2,29 +2,26 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="max-w-2xl mx-auto text-center mt-16">
-      <div className="bg-white rounded-lg shadow-md p-12">
-        <div className="text-6xl font-bold text-red-600 mb-4">404</div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Page Not Found</h1>
-        <p className="text-gray-600 mb-8">
-          Oops! The page you're looking for doesn't exist.
-        </p>
-        
+    <main className="min-h-screen bg-theme flex items-center justify-center">
+      <div className="text-center animate-fadeIn">
+        <div className="text-8xl font-bold text-theme mb-4">404</div>
+        <h1 className="text-2xl font-bold text-theme mb-2">Page Not Found</h1>
+        <p className="text-secondary mb-8">The page you&apos;re looking for doesn&apos;t exist.</p>
         <div className="flex justify-center gap-4">
           <Link
             href="/"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            className="px-6 py-3 bg-accent text-accent-foreground rounded-lg font-medium hover:opacity-90 transition-colors"
           >
             Go Home
           </Link>
           <Link
-            href="/users"
-            className="bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold px-6 py-3 rounded-lg transition-colors"
+            href="/ngo/list"
+            className="px-6 py-3 bg-card border border-theme text-theme rounded-lg font-medium hover:opacity-80 transition-colors"
           >
-            View Users
+            Browse NGOs
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

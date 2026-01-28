@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateToken } from '@/lib/auth';
 
-// Public: list all NGOs and their assigned locations
+// Public: list all active NGOs with ratings
 export async function GET() {
   try {
     const ngos = await prisma.ngo.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         name: true,
@@ -19,11 +20,29 @@ export async function GET() {
             email: true,
           },
         },
+        ratings: {
+          select: { stars: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ success: true, ngos }, { status: 200 });
+    // Calculate average ratings for each NGO
+    const ngosWithRatings = ngos.map(ngo => {
+      const totalStars = ngo.ratings.reduce((sum, r) => sum + r.stars, 0);
+      const avgRating = ngo.ratings.length > 0 ? totalStars / ngo.ratings.length : 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ratings, ...ngoData } = ngo;
+      return {
+        ...ngoData,
+        rating: {
+          average: Math.round(avgRating * 10) / 10,
+          count: ngo.ratings.length,
+        },
+      };
+    });
+
+    return NextResponse.json({ success: true, ngos: ngosWithRatings }, { status: 200 });
   } catch (error) {
     console.error('NGO list error:', error);
     return NextResponse.json({ success: false, message: 'Failed to fetch NGOs' }, { status: 500 });

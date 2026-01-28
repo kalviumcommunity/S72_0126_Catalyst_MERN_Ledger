@@ -1,16 +1,15 @@
 "use client";
 import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterNgoPage() {
+  const router = useRouter();
   const { login, loading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [ngoName, setNgoName] = useState("");
-  const [location, setLocation] = useState("");
-  const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -25,26 +24,18 @@ export default function RegisterNgoPage() {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          role: "ngo",
-          ngoName,
-          location,
-          description,
-        }),
+        body: JSON.stringify({ name, email, password, role: "ngo" }),
       });
 
       const payload = await response.json();
-
       if (!response.ok) {
         setError(payload?.error || "Failed to register NGO");
         return;
       }
 
-      setSuccess("NGO registered. If the location was free, the account is created and you are being signed in.");
+      setSuccess("Account created! Signing you in...");
       await login(email, password);
+      router.push("/ngo/claim");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -53,134 +44,61 @@ export default function RegisterNgoPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <section className="max-w-3xl mx-auto px-6 py-12 space-y-6">
-        <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">NGO booking</p>
-          <h1 className="text-3xl font-semibold">Claim a location</h1>
-          <p className="text-slate-600 text-sm">
-            One NGO per location. If this form returns a 409, someone else already claimed the spot.
-          </p>
+    <main className="min-h-screen bg-theme flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-fadeIn">
+        <div className="text-center mb-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted mb-2">NGO Registration</p>
+          <h1 className="text-3xl font-bold text-theme mb-2">Create NGO Account</h1>
+          <p className="text-secondary text-sm">Register as an NGO to claim locations.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <div className="grid gap-2 md:grid-cols-2 md:gap-4">
-            <Field
-              label="Your name"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-            <Field
-              label="Email"
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="bg-card border border-theme rounded-2xl p-8 space-y-4">
+          <Field label="Your Name" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Field label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Field label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
-          <Field
-            label="Password"
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-          <div className="grid gap-2 md:grid-cols-2 md:gap-4">
-            <Field
-              label="NGO name"
-              id="ngoName"
-              value={ngoName}
-              onChange={(e) => setNgoName(e.target.value)}
-              required
-            />
-            <Field
-              label="Location (city/site)"
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-              helper="If this location is taken, you will get a 409 and must pick another."
-            />
-          </div>
-
-          <Field
-            label="Description (optional)"
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            as="textarea"
-          />
+          {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{error}</div>}
+          {success && <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 text-sm">{success}</div>}
 
           <button
             type="submit"
             disabled={submitting || loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
+            className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-medium hover:opacity-90 transition-colors disabled:opacity-50"
           >
-            {submitting ? "Submitting..." : "Register NGO"}
+            {submitting ? "Creating Account..." : "Create NGO Account"}
           </button>
-
-          {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-          {success ? <p className="text-sm text-emerald-600">{success}</p> : null}
+          
+          <p className="text-xs text-center text-muted">
+            After registration, you&apos;ll be redirected to claim your first location.
+          </p>
         </form>
 
-        <div className="text-sm text-slate-600 space-y-1">
-          <p>
-            Already have an account? <Link className="text-indigo-600" href="/login">Login</Link>.
-          </p>
-          <p>
-            Want to see occupied locations? <Link className="text-indigo-600" href="/ngo/list">Browse NGOs</Link>.
-          </p>
+        <div className="mt-6 text-center text-sm text-muted space-y-1">
+          <p>Already have an account? <Link href="/login" className="text-theme hover:underline">Login</Link></p>
+          <p>Want to see NGOs? <Link href="/ngo/list" className="text-secondary hover:text-theme">Browse list</Link></p>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
 
-interface FieldProps {
-  id: string;
+function Field({ label, value, onChange, type = "text", required }: {
   label: string;
   value: string;
-  onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   type?: string;
-  as?: "input" | "textarea";
   required?: boolean;
-  helper?: string;
-}
-
-function Field({ id, label, value, onChange, type = "text", as = "input", required, helper }: FieldProps) {
-  const sharedClass =
-    "w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500";
-
+}) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="text-sm font-medium text-slate-700">
-        {label}
-      </label>
-      {as === "textarea" ? (
-        <textarea
-          id={id}
-          value={value}
-          onChange={onChange}
-          className={`${sharedClass} min-h-[120px]`}
-          required={required}
-        />
-      ) : (
-        <input
-          id={id}
-          type={type}
-          value={value}
-          onChange={onChange}
-          required={required}
-          className={sharedClass}
-        />
-      )}
-      {helper ? <p className="text-xs text-slate-500">{helper}</p> : null}
+    <div>
+      <label className="block text-sm text-secondary mb-1.5">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none focus:border-accent transition-colors"
+      />
     </div>
   );
 }

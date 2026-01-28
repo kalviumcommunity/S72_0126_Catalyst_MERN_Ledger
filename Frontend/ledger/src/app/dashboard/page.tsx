@@ -1,26 +1,51 @@
 "use client";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
+interface RatingStats {
+  average: number;
+  count: number;
+}
+
 export default function Dashboard() {
-  const { user, isAuthenticated, loading, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout, authHeader } = useAuth();
+  const [ratings, setRatings] = useState<Record<number, RatingStats>>({});
+
+  const fetchRatings = useCallback(async (ngoId: number) => {
+    try {
+      const res = await fetch(`/api/ratings?ngoId=${ngoId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRatings(prev => ({ ...prev, [ngoId]: data.stats }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch ratings:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "ngo" && user.ngos) {
+      user.ngos.forEach(ngo => fetchRatings(ngo.id));
+    }
+  }, [isAuthenticated, user, fetchRatings, authHeader]);
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto">
-        <p className="text-gray-500">Loading...</p>
-      </div>
+      <main className="min-h-screen bg-theme flex items-center justify-center">
+        <p className="text-muted">Loading...</p>
+      </main>
     );
   }
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="max-w-6xl mx-auto text-center py-12">
-        <h1 className="text-2xl font-bold mb-4">Please Login</h1>
-        <Link href="/login" className="text-blue-600 hover:underline">
-          Go to Login
-        </Link>
-      </div>
+      <main className="min-h-screen bg-theme flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-theme mb-4">Please Login</h1>
+          <Link href="/login" className="text-secondary hover:text-theme">Go to Login →</Link>
+        </div>
+      </main>
     );
   }
 
@@ -28,168 +53,132 @@ export default function Dashboard() {
   const ngos = user.ngos || [];
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-gray-600">
-            Welcome back, <strong>{user.name}</strong>!
-          </p>
-        </div>
-        <button
-          onClick={logout}
-          className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* User Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold">
-            {user.name.charAt(0).toUpperCase()}
-          </div>
+    <main className="min-h-screen bg-theme">
+      <div className="max-w-4xl mx-auto px-6 py-12 animate-fadeIn">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-8">
           <div>
-            <p className="font-semibold text-gray-900">{user.name}</p>
-            <p className="text-sm text-gray-600">{user.email}</p>
-            <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-              user.role === "admin" 
-                ? "bg-purple-100 text-purple-800" 
-                : user.role === "ngo"
-                ? "bg-green-100 text-green-800"
-                : "bg-blue-100 text-blue-800"
-            }`}>
-              {user.role.toUpperCase()}
-            </span>
+            <h1 className="text-3xl font-bold text-theme mb-2">Dashboard</h1>
+            <p className="text-secondary">Welcome back, <span className="text-theme">{user.name}</span></p>
           </div>
-        </div>
-      </div>
-
-      {/* NGO Section - Only for NGO users */}
-      {isNgo && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Your NGO Locations</h2>
-            <Link
-              href="/ngo/claim"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-            >
-              + Add Location
-            </Link>
-          </div>
-          
-          {ngos.length === 0 ? (
-            <p className="text-gray-600">You haven&apos;t registered any locations yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {ngos.map((ngo) => (
-                <div key={ngo.id} className="bg-gray-50 p-4 rounded-lg">
-                  <h3 className="font-semibold">{ngo.name}</h3>
-                  <p className="text-sm text-gray-600">{ngo.location}</p>
-                  {ngo.description && (
-                    <p className="text-sm text-gray-500 mt-1">{ngo.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {ngos.length > 0 && (
-            <Link
-              href="/ngo/my"
-              className="inline-block mt-4 text-blue-600 hover:underline text-sm"
-            >
-              Manage your locations →
-            </Link>
-          )}
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="space-y-3">
-          <Link
-            href="/ngo/list"
-            className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-100 p-2 rounded">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <span className="font-medium text-gray-900">Browse All NGOs</span>
-            </div>
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-
-          {isNgo && (
-            <Link
-              href="/ngo/claim"
-              className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <span className="font-medium text-gray-900">Claim New Location</span>
-              </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          )}
-
           <button
             onClick={logout}
-            className="w-full flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+            className="px-4 py-2 bg-input text-secondary rounded-lg hover:opacity-80 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <div className="bg-red-100 p-2 rounded">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </div>
-              <span className="font-medium text-gray-900">Logout</span>
-            </div>
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            Logout
           </button>
         </div>
-      </div>
 
-      {/* Info */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Account Information</h2>
-        <ul className="space-y-2 text-gray-600">
-          <li className="flex items-start">
-            <span className="mr-2">👤</span>
-            <span><strong>Name:</strong> {user.name}</span>
-          </li>
-          <li className="flex items-start">
-            <span className="mr-2">📧</span>
-            <span><strong>Email:</strong> {user.email}</span>
-          </li>
-          <li className="flex items-start">
-            <span className="mr-2">🔑</span>
-            <span><strong>Role:</strong> {user.role}</span>
-          </li>
-          {isNgo && (
-            <li className="flex items-start">
-              <span className="mr-2">📍</span>
-              <span><strong>Locations:</strong> {ngos.length} registered</span>
-            </li>
-          )}
-        </ul>
+        {/* User Card */}
+        <div className="bg-card border border-theme rounded-xl p-6 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-input flex items-center justify-center text-xl font-bold text-theme">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-theme">{user.name}</p>
+              <p className="text-sm text-secondary">{user.email}</p>
+              <span className={`inline-flex mt-1 px-2 py-0.5 text-xs font-medium rounded ${
+                isNgo ? "bg-emerald-500/20 text-emerald-400" : "bg-input text-secondary"
+              }`}>
+                {user.role.toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* NGO Locations */}
+        {isNgo && (
+          <div className="bg-card border border-theme rounded-xl p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-theme">Your Locations</h2>
+              <Link
+                href="/ngo/claim"
+                className="px-3 py-1.5 bg-accent text-accent-foreground text-sm rounded-lg hover:opacity-90 transition-colors"
+              >
+                + Add
+              </Link>
+            </div>
+            
+            {ngos.length === 0 ? (
+              <p className="text-muted">No locations registered yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {ngos.map((ngo) => {
+                  const ngoRating = ratings[ngo.id];
+                  return (
+                  <div key={ngo.id} className="bg-input rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-medium text-theme">{ngo.name}</h3>
+                        <p className="text-sm text-secondary">{ngo.location}</p>
+                        {ngo.description && <p className="text-sm text-muted mt-1">{ngo.description}</p>}
+                      </div>
+                      {ngoRating && (
+                        <div className="text-right">
+                          <div className="flex items-center gap-1">
+                            <span className="text-amber-400">★</span>
+                            <span className="text-theme font-medium">{ngoRating.average.toFixed(1)}</span>
+                          </div>
+                          <span className="text-xs text-muted">({ngoRating.count} ratings)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+                })}
+              </div>
+            )}
+            
+            {ngos.length > 0 && (
+              <Link href="/ngo/my" className="inline-block mt-4 text-secondary hover:text-theme text-sm">
+                Manage locations →
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="bg-card border border-theme rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-theme mb-4">Quick Actions</h2>
+          <div className="space-y-2">
+            <Link
+              href="/ngo/list"
+              className="flex items-center justify-between p-4 bg-input hover:opacity-80 rounded-lg transition-colors"
+            >
+              <span className="text-theme">Browse All NGOs</span>
+              <span className="text-muted">→</span>
+            </Link>
+            {!isNgo && (
+              <Link
+                href="/rate"
+                className="flex items-center justify-between p-4 bg-input hover:opacity-80 rounded-lg transition-colors"
+              >
+                <span className="text-theme">★ Rate an NGO</span>
+                <span className="text-muted">→</span>
+              </Link>
+            )}
+            {isNgo && (
+              <>
+              <Link
+                href="/ngo/claim"
+                className="flex items-center justify-between p-4 bg-input hover:opacity-80 rounded-lg transition-colors"
+              >
+                <span className="text-theme">Claim New Location</span>
+                <span className="text-muted">→</span>
+              </Link>
+              <Link
+                href="/ngo/my"
+                className="flex items-center justify-between p-4 bg-input hover:opacity-80 rounded-lg transition-colors"
+              >
+                <span className="text-theme">Manage Locations & Generate OTP</span>
+                <span className="text-muted">→</span>
+              </Link>
+              </>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

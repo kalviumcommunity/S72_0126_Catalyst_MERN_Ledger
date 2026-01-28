@@ -3,8 +3,6 @@ import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/prisma';
 import { generateToken } from '@/lib/jwt';
 
-const ALLOWED_ROLES = ['user', 'ngo'];
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -19,18 +17,12 @@ export async function POST(request: NextRequest) {
       description,
     } = body;
 
+    // Basic validation
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
     }
 
-    if (!ALLOWED_ROLES.includes(role)) {
-      return NextResponse.json({ error: 'Role must be either "user" or "ngo"' }, { status: 400 });
-    }
-
-    if (role === 'ngo' && (!ngoName || !location)) {
-      return NextResponse.json({ error: 'NGO name and location are required for NGO signups' }, { status: 400 });
-    }
-
+    // Check for existing user
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -41,21 +33,19 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    try {
-      const { user, ngos } = await prisma.$transaction(async (tx) => {
-        const createdUser = await tx.user.create({
-          data: {
-            name,
-            email,
-            password: hashedPassword,
-            role,
-          },
-        });
+    // Create user and optionally NGO in a transaction
+    const { user, ngos } = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: role === 'ngo' ? 'ngo' : 'user',
+        },
+      });
 
-        if (role !== 'ngo') {
-          return { user: createdUser, ngos: [] };
-        }
-
+      // Only create NGO if role is ngo and required fields are provided
+      if (role === 'ngo' && ngoName && location) {
         const createdNgo = await tx.ngo.create({
           data: {
             name: ngoName,
@@ -65,41 +55,30 @@ export async function POST(request: NextRequest) {
             accountOwnerId: createdUser.id,
           },
         });
-
         return { user: createdUser, ngos: [createdNgo] };
-      });
-
-      const token = generateToken({ userId: user.id, email: user.email, role: user.role });
-
-      return NextResponse.json(
-        {
-          message: 'Account created successfully',
-          token,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            ngos,  // Array of NGOs
-          },
-        },
-        { status: 201 }
-      );
-    } catch (error: unknown) {
-      const errorCode = (error as { code?: string })?.code;
-
-      if (errorCode === 'P2002') {
-        // Unique constraint violation: email or location
-        return NextResponse.json(
-          { error: 'Email or location already registered by another account' },
-          { status: 409 }
-        );
       }
 
-      throw error;
-    }
+      return { user: createdUser, ngos: [] };
+    });
+
+    const token = generateToken({ userId: user.id, email: user.email, role: user.role });
+
+    return NextResponse.json(
+      {
+        message: 'Account created successfully',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          ngos,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Signup error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
   }
 }

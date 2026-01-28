@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'NGO name and location are required' }, { status: 400 });
     }
 
-    // Check if location is already taken
-    const existingNgo = await prisma.ngo.findUnique({
-      where: { location },
+    // Check if location is already taken by an active NGO
+    const existingNgo = await prisma.ngo.findFirst({
+      where: { location, isActive: true },
     });
 
     if (existingNgo) {

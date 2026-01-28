@@ -6,7 +6,6 @@ interface Props {
 
 export default async function UserProfile({ params }: Props) {
   const { id } = params;
-  // Mock fetch user data
   const user = {
     id,
     name: "User " + id,
@@ -17,110 +16,78 @@ export default async function UserProfile({ params }: Props) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* Breadcrumb */}
-      <nav className="mb-6 text-sm text-gray-600">
-        <Link href="/" className="hover:text-gray-900">Home</Link>
-        <span className="mx-2">/</span>
-        <Link href="/users" className="hover:text-gray-900">Users</Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-900">User {id}</span>
-      </nav>
+    <main className="min-h-screen bg-theme">
+      <div className="max-w-3xl mx-auto px-6 py-12 animate-fadeIn">
+        <nav className="mb-6 text-sm text-muted">
+          <Link href="/" className="hover:text-theme">Home</Link>
+          <span className="mx-2">/</span>
+          <Link href="/users" className="hover:text-theme">Users</Link>
+          <span className="mx-2">/</span>
+          <span className="text-theme">User {id}</span>
+        </nav>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-12">
-          <div className="flex items-center">
-            <div className="bg-white rounded-full w-20 h-20 flex items-center justify-center text-2xl font-bold text-blue-600">
-              U{id}
-            </div>
-            <div className="ml-6">
-              <h1 className="text-3xl font-bold text-white mb-1">{user.name}</h1>
-              <p className="text-blue-100">{user.email}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Information</h2>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  User ID
-                </label>
-                <p className="text-gray-900 font-semibold">{user.id}</p>
+        <div className="bg-card border border-theme rounded-xl overflow-hidden">
+          <div className="bg-input px-8 py-10">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-2xl font-bold">
+                U{id}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Full Name
-                </label>
-                <p className="text-gray-900 font-semibold">{user.name}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Email Address
-                </label>
-                <p className="text-gray-900 font-semibold">{user.email}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Role
-                </label>
-                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-                  user.role === "Admin" 
-                    ? "bg-purple-100 text-purple-800" 
-                    : "bg-blue-100 text-blue-800"
-                }`}>
-                  {user.role}
-                </span>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Join Date
-                </label>
-                <p className="text-gray-900 font-semibold">{user.joinDate}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Status
-                </label>
-                <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                  {user.status}
-                </span>
+                <h1 className="text-2xl font-bold text-theme">{user.name}</h1>
+                <p className="text-secondary">{user.email}</p>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="bg-gray-50 px-8 py-4 border-t">
-          <Link
-            href="/users"
-            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-          >
-            ← Back to Users List
-          </Link>
+          <div className="p-8">
+            <h2 className="text-lg font-semibold text-theme mb-6">Profile Information</h2>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted mb-1">User ID</p>
+                  <p className="text-theme">{user.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted mb-1">Full Name</p>
+                  <p className="text-theme">{user.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted mb-1">Email</p>
+                  <p className="text-theme">{user.email}</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted mb-1">Role</p>
+                  <span className={`inline-flex px-2 py-0.5 text-xs rounded ${
+                    user.role === "Admin" ? "bg-accent text-accent-foreground" : "bg-input text-secondary"
+                  }`}>
+                    {user.role}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-muted mb-1">Join Date</p>
+                  <p className="text-theme">{user.joinDate}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted mb-1">Status</p>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-400">
+                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                    {user.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-theme px-8 py-4">
+            <Link href="/users" className="text-secondary hover:text-theme text-sm">
+              ← Back to Users
+            </Link>
+          </div>
         </div>
       </div>
-
-      <div className="mt-6 bg-gray-100 rounded-lg p-4">
-        <h3 className="font-semibold text-gray-900 mb-2">Dynamic Route Demo</h3>
-        <p className="text-sm text-gray-600">
-          This page is generated from <code className="bg-gray-200 px-1 py-0.5 rounded text-xs">/users/[id]/page.tsx</code>.
-          Try visiting /users/1, /users/2, or any number to see different profiles!
-        </p>
-      </div>
-    </div>
+    </main>
   );
 }

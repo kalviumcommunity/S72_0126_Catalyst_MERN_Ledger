@@ -8,61 +8,40 @@ export default function UsersPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Users</h1>
-        <p className="text-gray-600">Click on a user to view their detailed profile</p>
-      </div>
+    <main className="min-h-screen bg-theme">
+      <div className="max-w-4xl mx-auto px-6 py-12 animate-fadeIn">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-theme mb-2">Users</h1>
+          <p className="text-secondary">Click on a user to view their profile</p>
+        </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="bg-card border border-theme rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-input text-secondary">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Action
-                </th>
+                <th className="text-left px-4 py-3">ID</th>
+                <th className="text-left px-4 py-3">Name</th>
+                <th className="text-left px-4 py-3">Email</th>
+                <th className="text-left px-4 py-3">Role</th>
+                <th className="text-left px-4 py-3">Action</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-theme">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {user.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {user.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 text-xs font-semibold rounded-full ${
-                      user.role === "Admin" 
-                        ? "bg-purple-100 text-purple-800" 
-                        : "bg-blue-100 text-blue-800"
+                <tr key={user.id} className="hover:bg-input/50 transition-colors">
+                  <td className="px-4 py-3 text-secondary">{user.id}</td>
+                  <td className="px-4 py-3 font-medium text-theme">{user.name}</td>
+                  <td className="px-4 py-3 text-secondary">{user.email}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 text-xs rounded ${
+                      user.role === "Admin" ? "bg-accent text-accent-foreground" : "bg-input text-secondary"
                     }`}>
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <Link
-                      href={`/users/${user.id}`}
-                      className="text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      View Profile →
+                  <td className="px-4 py-3">
+                    <Link href={`/users/${user.id}`} className="text-secondary hover:text-theme transition-colors">
+                      View →
                     </Link>
                   </td>
                 </tr>
@@ -71,12 +50,6 @@ export default function UsersPage() {
           </table>
         </div>
       </div>
-
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>Dynamic Routes:</strong> Each user has a unique profile page accessible via /users/[id]
-        </p>
-      </div>
-    </div>
+    </main>
   );
 }

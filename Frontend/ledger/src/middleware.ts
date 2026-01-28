@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractTokenFromHeader } from '@/lib/jwt';
 
+// Use Node.js runtime to support jsonwebtoken library
+export const runtime = 'nodejs';
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;

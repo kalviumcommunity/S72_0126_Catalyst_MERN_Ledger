@@ -2,16 +2,13 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import FormInput from "@/components/FormInput";
 
-// Define validation schema
 const contactSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters long"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   message: z.string().min(10, "Message must be at least 10 characters"),
 });
 
-// Derive TypeScript types from schema
 type ContactFormData = z.infer<typeof contactSchema>;
 
 export default function ContactForm() {
@@ -27,80 +24,67 @@ export default function ContactForm() {
   const onSubmit = (data: ContactFormData) => {
     console.log("Contact Form Submitted:", data);
     alert("Message Sent Successfully!");
-    reset(); // Reset form after successful submission
+    reset();
   };
 
   return (
-    <main className="min-h-screen p-6 flex flex-col items-center justify-center bg-gray-100">
-      <div className="w-full max-w-lg">
-        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
-          Contact Us
-        </h1>
+    <main className="min-h-screen bg-theme flex items-center justify-center p-4">
+      <div className="w-full max-w-lg animate-fadeIn">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-theme mb-2">Contact Us</h1>
+          <p className="text-secondary text-sm">We&apos;d love to hear from you</p>
+        </div>
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="bg-white p-8 border border-gray-200 rounded-lg shadow-md"
+          className="bg-card border border-theme rounded-2xl p-8 space-y-4"
         >
-          <FormInput
-            label="Name"
-            name="name"
-            register={register}
-            error={errors.name}
-            placeholder="Enter your name"
-          />
-
-          <FormInput
-            label="Email"
-            name="email"
-            type="email"
-            register={register}
-            error={errors.email}
-            placeholder="your.email@example.com"
-          />
-
-          <div className="mb-3">
-            <label htmlFor="message" className="block mb-1 font-medium text-gray-700">
-              Message
-            </label>
-            <textarea
-              id="message"
-              {...register("message")}
-              rows={5}
-              aria-invalid={!!errors.message}
-              aria-describedby={errors.message ? "message-error" : undefined}
-              placeholder="Enter your message (at least 10 characters)"
-              className={`w-full border p-2 rounded focus:outline-none focus:ring-2 resize-vertical ${
-                errors.message
-                  ? "border-red-500 focus:ring-red-500"
-                  : "border-gray-300 focus:ring-blue-500"
+          <div>
+            <label className="block text-sm text-secondary mb-1.5">Name</label>
+            <input
+              {...register("name")}
+              placeholder="Your name"
+              className={`w-full bg-input border rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none transition-colors ${
+                errors.name ? "border-red-500" : "border-theme focus:border-accent"
               }`}
             />
-            {errors.message && (
-              <p id="message-error" className="text-red-500 text-sm mt-1" role="alert">
-                {errors.message.message}
-              </p>
-            )}
+            {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm text-secondary mb-1.5">Email</label>
+            <input
+              {...register("email")}
+              type="email"
+              placeholder="you@example.com"
+              className={`w-full bg-input border rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none transition-colors ${
+                errors.email ? "border-red-500" : "border-theme focus:border-accent"
+              }`}
+            />
+            {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm text-secondary mb-1.5">Message</label>
+            <textarea
+              {...register("message")}
+              rows={4}
+              placeholder="Your message..."
+              className={`w-full bg-input border rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none transition-colors resize-none ${
+                errors.message ? "border-red-500" : "border-theme focus:border-accent"
+              }`}
+            />
+            {errors.message && <p className="text-red-400 text-sm mt-1">{errors.message.message}</p>}
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-green-600 text-white px-4 py-2 mt-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-medium hover:opacity-90 transition-colors disabled:opacity-50"
           >
-            {isSubmitting ? "Sending..." : "Submit"}
+            {isSubmitting ? "Sending..." : "Send Message"}
           </button>
         </form>
-
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h2 className="font-semibold text-blue-900 mb-2">📋 Form Features:</h2>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>✓ Reusable FormInput component for name and email</li>
-            <li>✓ Custom textarea with validation for message</li>
-            <li>✓ Schema-based validation using Zod</li>
-            <li>✓ Accessibility attributes (aria-invalid, aria-describedby)</li>
-            <li>✓ Form reset after successful submission</li>
-          </ul>
-        </div>
       </div>
     </main>
   );

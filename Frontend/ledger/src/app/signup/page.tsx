@@ -1,11 +1,13 @@
 "use client";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const { login } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -14,28 +16,39 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // NGO specific fields
+  const [ngoName, setNgoName] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [description, setDescription] = useState("");
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
+      const payload: Record<string, string> = { name, email, password, role };
+      if (role === "ngo") {
+        payload.ngoName = ngoName;
+        payload.contactNumber = contactNumber;
+        payload.description = description;
+      }
+
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         setError(data?.message || data?.error || "Signup failed");
         return;
       }
 
-      // Auto-login after signup
       await login(email, password);
-      router.push("/dashboard");
+      // Redirect NGOs to claim page to set up their first location
+      router.push(role === "ngo" ? "/ngo/claim" : redirectUrl);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -44,104 +57,137 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <section className="max-w-xl mx-auto px-6 py-12 space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold">Sign Up</h1>
-          <p className="text-slate-600 text-sm">
-            Create an account. Choose NGO if you want to register locations, or User for view-only access.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-          <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium text-slate-700">
-              Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+    <main className="min-h-screen bg-theme flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-fadeIn">
+        <div className="bg-card border border-theme rounded-2xl p-8">
+          <div className="text-center mb-8 animate-slideDown">
+            <h1 className="text-3xl font-bold text-theme mb-2">Create Account</h1>
+            <p className="text-secondary text-sm">Join us and start your journey</p>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-slate-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+          {/* Role Toggle */}
+          <div className="flex p-1 bg-input rounded-xl mb-6">
+            <button
+              type="button"
+              onClick={() => setRole("user")}
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                role === "user" ? "bg-accent text-accent-foreground" : "text-secondary hover:text-theme"
+              }`}
+            >
+              User
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("ngo")}
+              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+                role === "ngo" ? "bg-accent text-accent-foreground" : "text-secondary hover:text-theme"
+              }`}
+            >
+              NGO
+            </button>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Account Type</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={role === "user"}
-                  onChange={() => setRole("user")}
-                  className="text-indigo-600"
-                />
-                <span className="text-sm">User (View only)</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={role === "ngo"}
-                  onChange={() => setRole("ngo")}
-                  className="text-indigo-600"
-                />
-                <span className="text-sm">NGO (Can claim locations)</span>
-              </label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-secondary mb-1.5">Full Name</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
+                className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none focus:border-accent transition-colors"
+              />
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60"
-          >
-            {loading ? "Creating account..." : "Sign Up"}
-          </button>
+            <div>
+              <label className="block text-sm text-secondary mb-1.5">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none focus:border-accent transition-colors"
+              />
+            </div>
 
-          {error && <p className="text-sm text-rose-600">{error}</p>}
-        </form>
+            <div>
+              <label className="block text-sm text-secondary mb-1.5">Password</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none focus:border-accent transition-colors"
+              />
+            </div>
 
-        <div className="text-sm text-slate-600">
-          <p>
-            Already have an account? <Link className="text-indigo-600" href="/login">Login</Link>.
-          </p>
-          <p>
-            Want to register an NGO with location? <Link className="text-indigo-600" href="/ngo/register">Register NGO</Link>.
+            {/* NGO Fields */}
+            <div className={`space-y-4 overflow-hidden transition-all duration-300 ${role === "ngo" ? "max-h-[320px] opacity-100" : "max-h-0 opacity-0"}`}>
+              <div className="pt-4 border-t border-theme">
+                <p className="text-sm text-muted mb-4">NGO Details</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-secondary mb-1.5">Organization Name</label>
+                    <input
+                      type="text"
+                      required={role === "ngo"}
+                      value={ngoName}
+                      onChange={(e) => setNgoName(e.target.value)}
+                      placeholder="Your NGO"
+                      className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none focus:border-accent transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary mb-1.5">Contact Number</label>
+                    <input
+                      type="tel"
+                      value={contactNumber}
+                      onChange={(e) => setContactNumber(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none focus:border-accent transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-secondary mb-1.5">Description (Optional)</label>
+                    <textarea
+                      rows={2}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="About your organization..."
+                      className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-theme placeholder-muted focus:outline-none focus:border-accent transition-colors resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-accent text-accent-foreground py-3 rounded-lg font-medium hover:opacity-90 transition-colors disabled:opacity-50"
+            >
+              {loading ? "Creating..." : "Create Account"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-muted">
+            Already have an account?{" "}
+            <Link href="/login" className="text-theme hover:underline">Sign in</Link>
           </p>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
